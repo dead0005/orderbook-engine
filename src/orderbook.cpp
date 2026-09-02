@@ -3,8 +3,8 @@
 
 void OrderBook::recordTrade(int buyId, int sellId, int price, int qty) {
     trades.push_back({buyId, sellId, price, qty, timeCounter++});
-    std::cout << "TRADE: buy#" << buyId << " x sell#" << sellId
-              << " | price=" << price << " qty=" << qty << "\n";
+    // std::cout << "TRADE: buy#" << buyId << " x sell#" << sellId
+    //           << " | price=" << price << " qty=" << qty << "\n";
 }
 
 void OrderBook::matchBuy(Order& incoming) {
@@ -94,7 +94,7 @@ void OrderBook::addMarketOrder(Order order) {
 void OrderBook::cancelOrder(int id) {
     auto priceIt = orderPriceLookup.find(id);
     if (priceIt == orderPriceLookup.end()) {
-        std::cout << "Cancel failed: order #" << id << " not found\n";
+        // std::cout << "Cancel failed: order #" << id << " not found\n";
         return;
     }
 
@@ -128,7 +128,7 @@ void OrderBook::cancelOrder(int id) {
 
     orderPriceLookup.erase(id);
     orderSideLookup.erase(id);
-    std::cout << "Order #" << id << " cancelled\n";
+    // std::cout << "Order #" << id << " cancelled\n";
 }
 
 void OrderBook::printBook() const {
