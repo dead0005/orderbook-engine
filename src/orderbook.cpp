@@ -1,5 +1,6 @@
 #include "orderbook.h"
 #include <iostream>
+#include <cstdint>
 
 void OrderBook::recordTrade(int buyId, int sellId, int price, int qty) {
     trades.push_back({buyId, sellId, price, qty, timeCounter++});

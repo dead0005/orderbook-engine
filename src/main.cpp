@@ -5,6 +5,8 @@
 #include <vector>
 #include <chrono>
 #include <algorithm>
+#include <thread>
+#include "threadsafe_queue.h"
 
 std::vector<std::string> split(const std::string& line, char delim) {
     std::vector<std::string> tokens;
@@ -12,6 +14,19 @@ std::vector<std::string> split(const std::string& line, char delim) {
     std::string item;
     while (std::getline(ss, item, delim)) tokens.push_back(item);
     return tokens;
+}
+
+void matchingEngineWorker(OrderBook& book, ThreadSafeQueue<std::pair<std::string, Order>>& queue) {
+    while (true) {
+        auto req = queue.pop();
+        if (req.first == "STOP") break; // Poison pill
+
+        if (req.first == "LIMIT") {
+            book.addLimitOrder(req.second);
+        } else if (req.first == "MARKET") {
+            book.addMarketOrder(req.second);
+        }
+    }
 }
 
 int main() {
@@ -29,6 +44,9 @@ int main() {
     std::vector<double> latencies;
     latencies.reserve(100000); // Prevent reallocation overhead during timing
 
+    ThreadSafeQueue<std::pair<std::string, Order>> orderQueue;
+    std::thread engineThread(matchingEngineWorker, std::ref(book), std::ref(orderQueue));
+
     while (std::getline(file, line)) {
         if (line.empty()) continue;
         auto tokens = split(line, ',');
@@ -43,16 +61,17 @@ int main() {
 
         auto start = std::chrono::high_resolution_clock::now();
 
-        if (type == "LIMIT") {
-            book.addLimitOrder(order);
-        } else if (type == "MARKET") {
-            book.addMarketOrder(order);
-        }
+        // Push to the queue instead of processing directly
+        orderQueue.push({type, order});
 
         auto end = std::chrono::high_resolution_clock::now();
         auto duration = std::chrono::duration_cast<std::chrono::microseconds>(end - start).count();
         latencies.push_back(duration);
     }
+    
+    // Shut down the background thread
+    orderQueue.push({"STOP", Order{}});
+    engineThread.join();
 
     if (!latencies.empty()) {
         std::sort(latencies.begin(), latencies.end());
